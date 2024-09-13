@@ -1,0 +1,104 @@
+﻿@model AXIS_IPortal.Areas.RENT.Models.ContractSC
+@{
+    ViewBag.Title = "DocumentFile";
+    Layout = "~/Views/Shared/Rent_Layout.cshtml";
+}
+<script src="~/Areas/RENT/Views/Contract/DocumentFile.js"></script>
+<script src="~/Resx/Lookup/Lkp.js"></script>
+
+<div ng-controller="DocumentFileCtrl">
+    @using (Ajax.BeginForm("", "", new AjaxOptions
+    {
+        HttpMethod = "post",
+        OnSuccess = "OnSuccess",
+    }, new { id = "Form", @class = "form-horizontal" }))
+    {
+        @Html.AntiForgeryToken()
+        <div class="row header alert alert-warning padding-min">
+            <div class="col-md-12 col-xs-10">
+                <h3 class="text-muted top7">
+                    <span class="glyphicon glyphicon-list"></span>
+                    Document File
+                </h3>
+            </div>
+        </div>
+        <div class="row ">
+            <div class="col-md-8 col-xs-12">
+                <div class="row">
+
+                    <div class="col-md-3 col-sm-6">
+                        <div class="top5" id="dvActionView">
+                            <button type="button" id="btnAddProductDtls" ng-disabled="tableform.$waiting" ng-click="AddAttachFile();"
+                                    class="btn btn-xs btn-info">
+                                <span class="glyphicon glyphicon-plus"></span>Add
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="panel panel-plain" id="divAttachment">
+            <div class="panel-body" style="width: 70%;">
+                <div class="table-responsive">
+                    <table class="table table-condensed table-pink table-bordered ">
+                        <tbody>
+                            <tr>
+                                <th style="color: black;">Sr.</th>
+                                <th style="color: black;" class="grid-header-item">Document Type</th>
+                                <th style="color: black;" class="grid-header-item ">File Name</th>
+                                <th style="color: black;" class="grid-header-item">Action</th>
+                            </tr>
+                            @*{{AttachFileLst}}*@
+                            <tr ng-repeat="item in AttachFileLst" ng-class="$index % 2 != 0 ? 'grid-item-padding':'grid-alt-item grid-item-padding'">
+                                <td>
+                                    <input ng-if="item.DocMode!=1" type="text" ng-model="item.RowId" id="txtRowId" class="form-control" style="width: 30px; border: none; background-color: none;" readonly="true" />
+                                    <input ng-if="item.DocMode==1" type="text" ng-model="item.RowNum" id="txtRowId" class="form-control" style="width: 30px; border: none; background-color: none;" readonly="true" />
+                                </td>
+                                <td>
+                                    <div id="dvAttachType">
+                                        <select ng-if="item.DocMode!=1" id="ddlAttachType_{{$index+1}}" ng-model="item.AttachType" class="form-control col-md-9"
+                                                name="ddlAttachType_{{$index+1}}" data-val="true" data-val-required="Attachment Type at row no. {{$index+1}} is required.">
+                                            <option value="0">--Select--</option>
+                                            <option value="1">Agreement</option>
+                                            <option value="2">Invoice</option>
+                                        </select>
+                                        <input ng-if="item.DocMode==1" id="ddlAttachType_{{$index+1}}" name="ContAtchType" type="text" class="form-control" ng-model="item.AttachTypeName" readonly />
+                                    </div>
+                                </td>
+                                <td>
+                                    <div id="dvFileName">
+                                        <a> <input ng-if="item.DocMode==1" id="fpUpload_{{$index}}" name="ContAtchFiles" type="text" class="form-control" onclick="DownloadContAtch(this);" ng-model="item.File" readonly /></a>
+                                        <input type="text" id="hiddContAttachId" class="hiddContAttachId" value="{{item.ContAttachId}}" style="display: none;" />
+                                        <input type="text" id="hiddContId" class="hiddContId" value="{{item.ContId}}" style="display: none;" />
+                                        <input type="text" id="hiddAttachType" class="hiddAttachType" value="{{item.AttachType}}" style="display: none;" />
+                                        <input type="text" id="hiddFile" class="hiddFile" value="{{item.File}}" style="display: none;" />
+                                        <input type="hidden" id="hiddCreatedBy" class="hiddCreatedBy" value="{{item.CreatedBy}}" />
+
+                                        <input ng-if="item.DocMode!=1" id="fpUpload{{$index}}" name="ContAtchFiles" type="file" class="form-control" ng-model="item.File" />
+                                    </div>
+                                </td>
+                                <td>
+                                    <button ng-if="item.DocMode!=1" type="button" class="btn btn-xs btn-darkgray" ng-click="DeleteFileItem($index,item.RowId)">
+                                        <span class="glyphicon glyphicon-trash"></span>
+                                    </button>
+                                    <button ng-if="item.DocMode==1" type="button" class="btn btn-xs btn-darkgray" ng-click="DeleteFile(item.ContAttachId)">
+                                        <span class="glyphicon glyphicon-trash"></span>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    @Html.HiddenFor(model => model.ContAttachmentJson, new { id = "hiddContAttachmentJson" })
+                    @Html.HiddenFor(model => model.ContId, new { id = "hiddenContId" })
+                </div>
+            </div>
+            <div class="text-center" style="margin-left: -320px">
+                <button type="submit" class="btn btn-success btn-sm text-uppercase" value="Save" name="Command" id="btnSave" onclick="GetAllData();">
+                    <span class="glyphicon glyphicon-ok"></span>
+                    Upload
+                </button>
+            </div>
+        </div>
+    }
+</div>
+

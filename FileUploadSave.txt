@@ -1,0 +1,77 @@
+ public static string FormatFileSize(long sizeInBytes)
+ {
+     if (sizeInBytes < 1024)
+     {
+         return sizeInBytes + " bytes";
+     }
+     else if (sizeInBytes < 1048576)
+     {
+         return (sizeInBytes / 1024.0).ToString("0.00") + " KB";
+     }
+     else
+     {
+         return (sizeInBytes / 1048576.0).ToString("0.00") + " MB";
+     }
+ }
+
+ [HttpPost]
+ public async Task<ActionResult> SaveAtch()
+ {
+     string attachmentsJson = Request.Form["attachments"];
+     string mContID = Request.Form["contId"];
+     var attachments = JsonConvert.DeserializeObject<List<ContAttachFileSC>>(attachmentsJson);
+     ContractSC vContractSC = new ContractSC();
+     ContractBLL mContractBLL = new ContractBLL();
+     var files = Request.Files;
+     vContractSC.ContId = Convert.ToInt32(mContID);
+     vContractSC.CreatedBy = _UserObj.Properties.EmpCode;
+     var fileFieldNames = new List<string>();
+     for (int i = 0; i < files.Count; i++)
+     {
+         fileFieldNames.Add(files.AllKeys[i]);
+     }
+
+     foreach (var attachment in attachments)
+     {
+         string fileFieldName = fileFieldNames[attachments.IndexOf(attachment)];
+         var file = files[fileFieldName];
+         vContractSC.DocName = attachment.FileName;
+         vContractSC.DocType = attachment.AttachType;
+         vContractSC.DocSize = FormatFileSize(attachment.FileSize);
+         vContractSC.FileType = attachment.FileType;
+         vContractSC.File = file;
+         mContractBLL.SaveFileToTemp(vContractSC);
+         mContractBLL.DocSubmit(vContractSC);
+     }
+
+     return Json(new { IsSuccess = "Y" });
+ }
+ 
+ -----------------------------------------BLL File----------------------------------------------------
+         public void DocSubmit(ContractSC vContractSC)
+        {
+            ContractDAL mContDAL = new ContractDAL();
+            TransactionScope mTransactionScope = new TransactionScope();
+            using (mTransactionScope)
+            {
+                mContDAL.DocSubmit(vContractSC); //save in DB
+                mTransactionScope.Complete();
+            }
+            mTransactionScope.Dispose();
+        }
+-----------------------------------------------DAL----------------------------------------------------
+        public void DocSubmit(ContractSC vContractSC)
+        {
+            String mFileId = string.Empty;
+            DbCommand mDbCommand = null;
+            String mStoredProcName = String.Empty;
+            mStoredProcName = StoredProcedure.spr_Cont_Document_Save;
+            mDbCommand = CurrentDatabase.GetStoredProcCommand(mStoredProcName);
+            CurrentDatabase.AddInParameter(mDbCommand, "@vContId", DbType.Int32, vContractSC.ContId);
+            CurrentDatabase.AddInParameter(mDbCommand, "@vDocName", DbType.String, vContractSC.DocName);
+            CurrentDatabase.AddInParameter(mDbCommand, "@vDocType", DbType.String, vContractSC.DocType);
+            CurrentDatabase.AddInParameter(mDbCommand, "@vDocSize", DbType.String, vContractSC.DocSize);
+            CurrentDatabase.AddInParameter(mDbCommand, "@vFileType", DbType.String, vContractSC.FileType);
+            CurrentDatabase.AddInParameter(mDbCommand, "@vCreatedBy", DbType.Int32, vContractSC.CreatedBy);
+            CurrentDatabase.ExecuteNonQuery(mDbCommand);
+        }
